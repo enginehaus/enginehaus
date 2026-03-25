@@ -1,0 +1,26 @@
+{
+  "name": "research",
+  "label": "Research & Knowledge Work",
+  "experimental": true,
+  "phases": [
+    { "name": "Literature Review", "description": "Survey existing work, identify gaps", "canSkip": false },
+    { "name": "Hypothesis", "description": "Formulate research questions or hypotheses", "canSkip": true },
+    { "name": "Methodology", "description": "Define approach, data collection, analysis methods", "canSkip": false },
+    { "name": "Analysis", "description": "Execute research, analyze data", "canSkip": false },
+    { "name": "Synthesis", "description": "Synthesize findings, draw conclusions", "canSkip": false },
+    { "name": "Peer Review", "description": "External review, feedback incorporation", "canSkip": true }
+  ],
+  "decisionCategories": ["methodology", "source", "scope", "interpretation", "framework", "other"],
+  "taskTypes": ["literature-review", "experiment", "analysis", "survey", "synthesis", "other"],
+  "qualityGates": [
+    { "name": "citation-verification", "description": "All citations verified and accessible", "manual": true },
+    { "name": "methodology-review", "description": "Methodology reviewed for soundness", "manual": true },
+    { "name": "reproducibility-check", "description": "Results reproducible from described methods", "manual": true }
+  ],
+  "checkpointProtocol": "manual",
+  "contextLabels": {
+    "strategic": "Research Objectives",
+    "ux": "Audience Context",
+    "technical": "Methodological Standards"
+  }
+}

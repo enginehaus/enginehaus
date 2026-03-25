@@ -1,0 +1,370 @@
+.quality-gate-editor {
+  padding: 0.5rem 0;
+}
+
+.quality-gate-editor .editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.quality-gate-editor .editor-description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  max-width: 500px;
+}
+
+.quality-gate-editor .editor-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.quality-gate-editor .action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.quality-gate-editor .action-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.quality-gate-editor .action-btn.primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.quality-gate-editor .action-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.quality-gate-editor .action-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quality-gate-editor .action-btn.secondary {
+  color: var(--text-secondary);
+}
+
+/* Gates Section */
+.gates-section {
+  margin-bottom: 2rem;
+}
+
+.gates-section h3 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin: 0 0 1rem 0;
+}
+
+.gates-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Gate Card */
+.gate-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: border-color 0.2s;
+}
+
+.gate-card:hover {
+  border-color: var(--accent);
+}
+
+.gate-card.custom-gate {
+  border-left: 3px solid var(--accent);
+}
+
+/* Gate Header */
+.gate-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.gate-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.gate-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.gate-icon.custom {
+  color: var(--success);
+}
+
+.gate-info h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.gate-description {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.gate-name-field {
+  min-width: 200px;
+}
+
+.gate-name-field .editable-field {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+/* Toggle Labels */
+.gate-toggles {
+  display: flex;
+  gap: 1rem;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+/* Gate Fields */
+.gate-fields {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-row.command-field {
+  grid-column: 1 / -1;
+}
+
+.field-row label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Editable Field */
+.editable-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  min-height: 36px;
+  font-family: monospace;
+}
+
+.editable-field:hover {
+  border-color: var(--border);
+}
+
+.editable-field .placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+  font-family: inherit;
+}
+
+.editable-field .edit-icon {
+  opacity: 0;
+  color: var(--text-muted);
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.editable-field:hover .edit-icon {
+  opacity: 1;
+}
+
+/* Editing State */
+.editable-field.editing .edit-input-group {
+  display: flex;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.editable-field.editing input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: monospace;
+  outline: none;
+}
+
+/* Icon Buttons */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.icon-btn.save {
+  background: var(--success);
+  color: white;
+  border-color: var(--success);
+}
+
+.icon-btn.save:hover {
+  opacity: 0.9;
+}
+
+.icon-btn.cancel {
+  background: var(--bg-tertiary);
+}
+
+.icon-btn.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+  border-color: var(--error);
+}
+
+/* Gate Actions */
+.gate-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.test-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.test-btn:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.test-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.move-buttons {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .quality-gate-editor .editor-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .gate-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .gate-toggles {
+    flex-wrap: wrap;
+  }
+
+  .gate-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .field-row.command-field {
+    grid-column: 1;
+  }
+
+  .gate-actions {
+    flex-wrap: wrap;
+  }
+
+  .move-buttons {
+    margin-left: 0;
+  }
+}

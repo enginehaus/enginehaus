@@ -1,0 +1,26 @@
+{
+  "name": "software",
+  "label": "Software Development",
+  "phases": [
+    { "name": "Context & Planning", "description": "Understand requirements, gather context", "canSkip": false },
+    { "name": "Architecture", "description": "Design solution, make technical decisions", "canSkip": true },
+    { "name": "Core Implementation", "description": "Build primary functionality", "canSkip": false },
+    { "name": "Integration", "description": "Connect components, wire up dependencies", "canSkip": true },
+    { "name": "Testing", "description": "Add tests, verify behavior", "canSkip": true },
+    { "name": "Documentation", "description": "Update docs, add comments", "canSkip": true },
+    { "name": "Review", "description": "Self-review, address issues", "canSkip": true },
+    { "name": "Deployment", "description": "Final checks, merge preparation", "canSkip": true }
+  ],
+  "decisionCategories": ["architecture", "tradeoff", "dependency", "pattern", "other"],
+  "taskTypes": ["code", "docs", "infra", "test", "other"],
+  "qualityGates": [
+    { "name": "tests-pass", "description": "All tests pass", "command": "npm test" },
+    { "name": "lint-clean", "description": "No linting errors", "command": "npm run lint" }
+  ],
+  "checkpointProtocol": "git",
+  "contextLabels": {
+    "strategic": "Strategic Context",
+    "ux": "UX Context",
+    "technical": "Technical Context"
+  }
+}

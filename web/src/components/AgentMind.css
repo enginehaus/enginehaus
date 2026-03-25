@@ -1,0 +1,163 @@
+/**
+ * Agent Mind Visualization Styles
+ *
+ * Living topology visualization showing agent cognition.
+ */
+
+.agent-mind-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.agent-mind-container canvas {
+  display: block;
+}
+
+.agent-mind-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  gap: 12px;
+  color: var(--wh-text-muted);
+}
+
+.agent-mind-empty .empty-icon {
+  opacity: 0.5;
+}
+
+.agent-mind-empty span {
+  font-size: 0.875rem;
+}
+
+/* Tooltip */
+.agent-mind-tooltip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 10px 14px;
+  background: var(--wh-bg-elevated);
+  border: 1px solid var(--wh-border);
+  border-radius: var(--wh-radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 220px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.tooltip-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--wh-text-primary);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.tooltip-meta {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.tooltip-meta span {
+  font-size: 0.6875rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tooltip-meta .status-in-progress {
+  background: rgba(129, 140, 248, 0.15);
+  color: var(--wh-accent);
+}
+
+.tooltip-meta .status-ready {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--wh-success);
+}
+
+.tooltip-meta .status-blocked {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--wh-error);
+}
+
+.tooltip-meta .status-completed {
+  background: var(--wh-bg-tertiary);
+  color: var(--wh-text-muted);
+}
+
+.tooltip-meta .priority-critical {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--wh-error);
+}
+
+.tooltip-meta .priority-high {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--wh-warning);
+}
+
+.tooltip-meta .priority-medium {
+  background: var(--wh-bg-tertiary);
+  color: var(--wh-text-secondary);
+}
+
+.tooltip-meta .priority-low {
+  background: var(--wh-bg-tertiary);
+  color: var(--wh-text-muted);
+}
+
+.tooltip-phase {
+  font-size: 0.6875rem;
+  color: var(--wh-text-muted);
+}
+
+/* Legend */
+.agent-mind-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 16px;
+  padding: 8px 12px;
+  background: rgba(17, 17, 19, 0.8);
+  border-radius: var(--wh-radius-sm);
+  font-size: 0.6875rem;
+  color: var(--wh-text-muted);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-dot.active {
+  background: var(--wh-accent);
+  box-shadow: 0 0 8px var(--wh-accent);
+}
+
+.legend-dot.ready {
+  background: var(--wh-success);
+}
+
+.legend-dot.blocked {
+  background: var(--wh-error);
+  animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

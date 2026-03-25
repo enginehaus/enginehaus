@@ -1,0 +1,51 @@
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Dependencies
+node_modules/
+
+# Build output
+build/
+dist/
+
+# Data storage (local development)
+.enginehaus/
+*.db
+*.db-journal
+
+# Claude Code (per-user config, memory, worktrees)
+.claude/
+
+# Gemini (per-user config)
+.gemini/
+
+# IDE
+.vscode/
+.cursor/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Internal docs (not published)
+docs/internal/
+
+# Test coverage (generated)
+coverage/
+
+# Design files (local, binary)
+design/
+*.pen

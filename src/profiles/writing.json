@@ -1,0 +1,25 @@
+{
+  "name": "writing",
+  "label": "Writing & Content",
+  "experimental": true,
+  "phases": [
+    { "name": "Research", "description": "Gather sources, interview notes, background material", "canSkip": false },
+    { "name": "Outline", "description": "Structure the piece, define sections and flow", "canSkip": true },
+    { "name": "Draft", "description": "Write the first complete draft", "canSkip": false },
+    { "name": "Review", "description": "Editorial review, fact-checking, consistency pass", "canSkip": false },
+    { "name": "Final", "description": "Final polish, formatting, publication prep", "canSkip": true }
+  ],
+  "decisionCategories": ["tone", "source", "narrative", "audience", "style", "other"],
+  "taskTypes": ["article", "memo", "essay", "interview", "edit", "other"],
+  "qualityGates": [
+    { "name": "source-verification", "description": "All sources verified and properly attributed", "manual": true },
+    { "name": "consistency-check", "description": "Tone, style, and terminology consistent throughout", "manual": true },
+    { "name": "editorial-review", "description": "Reviewed by editor or peer", "manual": true }
+  ],
+  "checkpointProtocol": "manual",
+  "contextLabels": {
+    "strategic": "Publication Goals",
+    "ux": "Reader Context",
+    "technical": "Editorial Standards"
+  }
+}

@@ -1,0 +1,350 @@
+/* Enginehaus Console - Main Layout */
+/* 2026 aesthetic: Dark-native, minimal chrome */
+
+:root {
+  /* Dark palette - matches Wheelhaus */
+  --bg-primary: #0a0a0b;
+  --bg-secondary: #111113;
+  --bg-tertiary: #18181b;
+  --bg-elevated: #1c1c1f;
+  --bg-hover: #232326;
+
+  --border: #27272a;
+  --border-subtle: #1f1f22;
+
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-faint: #52525b;
+
+  --accent: #818cf8;
+  --accent-muted: #6366f1;
+  --accent-subtle: rgba(99, 102, 241, 0.15);
+
+  --success: #4ade80;
+  --success-muted: #22c55e;
+  --warning: #fbbf24;
+  --error: #f87171;
+
+  --sidebar-width: 200px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* App Layout */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  left: 0;
+  top: 0;
+}
+
+/* Logo */
+.logo {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.logo h1 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.logo .tagline {
+  display: block;
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+  margin-top: 0.125rem;
+}
+
+/* Project Section */
+.project-section {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.project-section .project-switcher {
+  width: 100%;
+}
+
+.project-section .switcher-trigger {
+  width: 100%;
+  justify-content: flex-start;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 6px;
+}
+
+.project-section .switcher-trigger:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.project-section .project-name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Navigation Links */
+.nav-links {
+  flex: 1;
+  padding: 0.75rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  overflow-y: auto;
+}
+
+.nav-links a {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  transition: all 0.12s ease;
+}
+
+.nav-links a:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.nav-links a.active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.nav-links a svg {
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.nav-links a:hover svg,
+.nav-links a.active svg {
+  opacity: 1;
+}
+
+/* Wheelhaus Link - Special Styling */
+.nav-links a.wheelhaus-link {
+  background: var(--accent-subtle);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  margin-bottom: 0.375rem;
+  color: var(--accent);
+}
+
+.nav-links a.wheelhaus-link:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.nav-links a.wheelhaus-link.active {
+  background: var(--accent-muted);
+  border-color: transparent;
+  color: white;
+}
+
+.nav-links a.wheelhaus-link svg {
+  opacity: 0.9;
+}
+
+.nav-links a.wheelhaus-link.active svg {
+  opacity: 1;
+}
+
+/* Nav Footer */
+.nav-footer {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+}
+
+.status-indicator.online {
+  color: var(--success);
+}
+
+.status-indicator svg {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 1.5rem 2rem;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+/* Common Components */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-state svg {
+  opacity: 0.3;
+  margin-bottom: 1rem;
+}
+
+.empty-state h2 {
+  font-size: 1.125rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.empty-state p {
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-badge.active {
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+}
+
+.status-badge.completed {
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.status-badge.expired {
+  background: rgba(248, 113, 113, 0.15);
+  color: var(--error);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+}
+
+/* Button base styles for dark mode */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Form inputs */
+input, select, textarea {
+  font-family: inherit;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent-muted);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+input::placeholder {
+  color: var(--text-faint);
+}
