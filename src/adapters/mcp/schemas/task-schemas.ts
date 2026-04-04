@@ -148,6 +148,7 @@ export const completeTaskSmartSchema = {
       summary: { type: 'string', description: 'Brief natural language summary (2-3 sentences)' },
       sessionStartTime: { type: 'string', description: 'ISO timestamp when implementation started (for git analysis). Defaults to last 24 hours.' },
       enforceQuality: { type: 'boolean', description: 'When false, allows completion despite quality gaps (no tests, no decisions). Defaults to true (blocking mode). Set to false to bypass.' },
+      allowUnmerged: { type: 'boolean', description: 'When true, allows completion even if the current branch is not merged to main. Defaults to false (blocking mode).' },
       decisions: {
         type: 'array',
         description: 'Inline decisions to log before completing. Eliminates the need for separate log_decision calls.',

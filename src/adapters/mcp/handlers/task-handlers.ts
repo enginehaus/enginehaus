@@ -100,6 +100,7 @@ export interface CompleteTaskSmartParams {
   role?: 'pm' | 'ux' | 'tech-lead' | 'developer' | 'qa' | 'human';
   sessionStartTime?: string;
   enforceQuality?: boolean;
+  allowUnmerged?: boolean;
   decisions?: Array<{
     decision: string;
     rationale?: string;
@@ -263,6 +264,7 @@ export async function handleCompleteTaskSmart(
     sessionStartTime: args.sessionStartTime,
     defaultProjectRoot: ctx.projectRoot,
     enforceQuality: args.enforceQuality,
+    allowUnmerged: args.allowUnmerged,
     role: args.role,
     agentId: ctx.resolvedAgentId,
     decisions: args.decisions,

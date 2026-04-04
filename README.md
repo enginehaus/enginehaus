@@ -55,7 +55,7 @@ When the next session starts — same agent or different, same tool or different
 
 **Cross-agent memory.** Decisions and context persist across sessions and tools. The second agent doesn't re-discover what the first one decided.
 
-**Reliability loops.** Uncommitted changes block completion. Unpushed work is flagged. Quality gates enforce what instructions can't.
+**Your definition of done, enforced.** Define quality gates for your team — Enginehaus enforces them structurally. Uncommitted changes block completion. Unpushed work is flagged. Your standards, checked every time.
 
 **Works everywhere.** `enginehaus init` auto-detects your tools and configures MCP + workflow hooks. Full hook enforcement for Claude Code, Cursor, VS Code, Gemini CLI, and Cline. MCP auto-config for Claude Desktop, Kiro, LM Studio, and more. HTTP/REST API for anything else.
 

@@ -90,10 +90,27 @@ export interface TeamReference {
 // Workflow Configuration
 // ============================================================================
 
+export type BranchStrategy = 'feature' | 'trunk' | 'gitflow';
+export type SessionOwnership = 'individual' | 'collective';
+export type CommitTarget = 'branch' | 'main';
+export type ReleaseFrequency = 'continuous' | 'sprint' | 'manual';
+
 export interface WorkflowConfig {
   phases: PhaseWorkflowConfig;
   sessions: SessionConfig;
   tasks: TaskConfig;
+  /** Branch strategy: feature branches (default), trunk-based, or gitflow */
+  branchStrategy?: BranchStrategy;
+  /** Session ownership: individual (default, one agent per task) or collective (mob/pair) */
+  sessionOwnership?: SessionOwnership;
+  /** Where agents commit: feature branch (default) or directly to main */
+  commitTarget?: CommitTarget;
+  /** Release cadence hint (informational, used in briefings) */
+  releaseFrequency?: ReleaseFrequency;
+  /** Enable driver rotation for mob/pair workflows */
+  driverRotation?: boolean;
+  /** User-defined quality gates that replace default heuristics. Each entry is a gate name or name:param pair. */
+  qualityGates?: string[];
 }
 
 export interface PhaseWorkflowConfig {
@@ -156,6 +173,8 @@ export interface TaskConfig {
   requireCommitOnCompletion: boolean;
   /** Require commits to be pushed to remote before completing tasks */
   requirePushOnCompletion: boolean;
+  /** Require current branch to be merged into main before completing tasks */
+  requireMergeOnCompletion: boolean;
   /** Auto-create pending outcome records when tasks are completed */
   requireOutcomeTracking: boolean;
   /** Checkpoint protocol: 'git' requires commit SHA on phase advance, 'manual' uses timestamps */
@@ -581,6 +600,7 @@ export const DEFAULT_CONFIG: EnginehausConfig = {
       autoDetectType: true,
       requireCommitOnCompletion: true, // Structure > Instruction: enforce commits before completion
       requirePushOnCompletion: true,   // Structure > Instruction: enforce push before completion
+      requireMergeOnCompletion: true,  // Structure > Instruction: enforce branch merged to main before completion
       requireOutcomeTracking: true,    // Structure > Instruction: auto-create pending outcomes on completion
       checkpointProtocol: 'git' as const,
       useWorktree: false,              // Opt-in: isolate each task in its own git worktree

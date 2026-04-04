@@ -45,6 +45,8 @@ import {
   RecentCommitsResult,
   removeWorktree,
   deleteTaskBranch,
+  mergeAndCleanupBranches,
+  isBranchMergedToMain,
 } from '../../git/git-analysis.js';
 import {
   loadFilePreviews,
@@ -932,9 +934,23 @@ export class CompletionService {
       }
     }
 
-    // Detect cross-agent overwrite
+    // Block cross-agent completion via update_task
+    // Desktop can't set status=completed on a task claimed by Code — use complete_task_smart instead.
     const warnings: string[] = [];
     const currentAgent = params.lastModifiedBy || 'unknown';
+    if (params.status === 'completed') {
+      const activeSession = await this.ctx.storage.getActiveSessionForTask(params.taskId);
+      if (activeSession && activeSession.agentId !== currentAgent) {
+        return {
+          success: false,
+          error: `Cannot mark task as completed: it is claimed by "${activeSession.agentId}" (you are "${currentAgent}"). ` +
+            `Only the claiming agent can complete implementation tasks. ` +
+            `Use complete_task_smart from the owning agent's session instead.`,
+        };
+      }
+    }
+
+    // Detect cross-agent overwrite
     const previousAgent = existing.lastModifiedBy;
     if (previousAgent && previousAgent !== currentAgent && Object.keys(changedFields).length > 0) {
       const fieldNames = Object.keys(changedFields).join(', ');
@@ -992,6 +1008,7 @@ export class CompletionService {
     sessionStartTime?: string;
     defaultProjectRoot: string;
     enforceQuality?: boolean;
+    allowUnmerged?: boolean;
     role?: string;
     agentId?: string;
     decisions?: Array<{
@@ -1004,7 +1021,7 @@ export class CompletionService {
       notes?: string;
     };
   }): Promise<any> {
-    const { taskId, summary, sessionStartTime, defaultProjectRoot, enforceQuality, role, agentId, decisions, outcome } = params;
+    const { taskId, summary, sessionStartTime, defaultProjectRoot, enforceQuality, allowUnmerged, role, agentId, decisions, outcome } = params;
 
     const task = await this.ctx.storage.getTask(taskId);
     if (!task) {
@@ -1092,6 +1109,28 @@ export class CompletionService {
             unpushedCount: pushStatus.unpushedCount,
           },
           message: 'Structure > Instruction: Tasks must be pushed to remote before completion. This ensures work is visible to other agents and not at risk of loss.',
+        };
+      }
+    }
+
+    // Check for unmerged branch
+    const requireMerge = workflowConfig.tasks.requireMergeOnCompletion;
+
+    if (requireMerge && !allowUnmerged && hasGitRepo && !isCoordinator) {
+      const mergeStatus = await isBranchMergedToMain(repoPath);
+      if (!mergeStatus.isMainBranch && !mergeStatus.isMerged) {
+        return {
+          success: false,
+          taskId,
+          error: `Cannot complete task: branch "${mergeStatus.currentBranch}" has not been merged to ${mergeStatus.targetBranch}. Options:\n` +
+            `  - Merge: git checkout ${mergeStatus.targetBranch} && git merge ${mergeStatus.currentBranch}\n` +
+            `  - Use allowUnmerged: true to mark as done without merging\n` +
+            `  - Use role: "pm" or "human" if you're coordinating, not implementing`,
+          unmergedBranch: {
+            branch: mergeStatus.currentBranch,
+            targetBranch: mergeStatus.targetBranch,
+          },
+          message: 'Structure > Instruction: Tasks must be merged to main before completion. This ensures work actually lands in production.',
         };
       }
     }
@@ -1498,13 +1537,25 @@ export class CompletionService {
       }
     }
 
-    // Clean up task branch (local + remote) after completion
+    // Merge feature branches into main, delete them, and push
     let branchCleanup: { deletedLocal: string[]; deletedRemote: string[] } | undefined;
+    let mergeCleanup: { merged: string[]; pushed: boolean; pushError?: string } | undefined;
     const cleanupBranch = workflowConfig.tasks.cleanupBranchOnCompletion ?? true;
     if (cleanupBranch && hasGitRepo) {
       try {
-        const taskIdPrefix = taskId.slice(0, 8);
-        branchCleanup = await deleteTaskBranch(repoPath, taskIdPrefix);
+        const result = await mergeAndCleanupBranches(repoPath);
+        const merged = result.branches.filter(b => b.action === 'merged').map(b => b.branch);
+        const deleted = result.branches.filter(b => b.action === 'deleted').map(b => b.branch);
+        branchCleanup = { deletedLocal: [...merged, ...deleted], deletedRemote: [] };
+        mergeCleanup = { merged, pushed: result.pushed, pushError: result.pushError };
+
+        // Add warnings for skipped branches
+        for (const b of result.branches.filter(r => r.action === 'skipped')) {
+          workflowWarnings.push(`Branch "${b.branch}" not merged: ${b.reason}`);
+        }
+        if (result.pushError) {
+          workflowWarnings.push(`Push to origin failed: ${result.pushError}`);
+        }
       } catch {
         // Non-critical — branches can be cleaned up manually
       }
@@ -1535,6 +1586,8 @@ export class CompletionService {
       worktreeCleaned: worktreeCleaned || undefined,
       branchCleanup: branchCleanup && (branchCleanup.deletedLocal.length > 0 || branchCleanup.deletedRemote.length > 0)
         ? branchCleanup : undefined,
+      mergeCleanup: mergeCleanup && (mergeCleanup.merged.length > 0 || mergeCleanup.pushed)
+        ? mergeCleanup : undefined,
       toolHints: getCompletionHints({
         hasInitiative: !outcomeRecorded,
         hasRelatedTasks: (task.blocks?.length ?? 0) > 0,

@@ -72,6 +72,7 @@ import { registerInfoCommands } from './commands/info-commands.js';
 import { registerUtilityCommands } from './commands/utility-commands.js';
 import { registerAuditCommands } from './commands/audit-commands.js';
 import { registerCiCommands } from './commands/ci-commands.js';
+import { registerToolCommands } from './commands/tool-commands.js';
 // Analysis engines are accessed via CoordinationService — not imported directly.
 // This prevents behavior divergence between CLI and MCP interfaces.
 
@@ -524,6 +525,12 @@ registerAuditCommands(program, { coordination, resolveProject, getProjectId, res
 registerCiCommands(program, { coordination, resolveProject, getProjectId, resolveTaskById, displayRelatedLearnings, registerCommand });
 
 // ============================================================================
+// Tool Commands: Generic MCP tool passthrough (commands/tool-commands.ts)
+// ============================================================================
+
+registerToolCommands(program, { coordination, storage, resolveProject, getProjectId, resolveTaskById, displayRelatedLearnings, registerCommand });
+
+// ============================================================================
 // Help All Command: Show complete command list
 // ============================================================================
 
@@ -546,6 +553,7 @@ program
         'Analytics': ['stats', 'metrics', 'analytics', 'feedback'],
         'Web Console': ['serve'],
         'Configuration': ['config', 'errors'],
+        'MCP Tools': ['tool'],
       };
 
       for (const [category, cmds] of Object.entries(categories)) {
@@ -758,6 +766,7 @@ program
   .option('-s, --summary <summary>', 'Summary of what was done')
   .option('-f, --force', 'Bypass quality enforcement')
   .option('--reason <reason>', 'Reason for bypassing quality')
+  .option('--unmerged-ok', 'Allow completion from an unmerged branch')
   .action(async (taskIdArg, opts) => {
     await coordination.initialize();
     const project = await resolveProject();
@@ -773,6 +782,7 @@ program
       summary,
       defaultProjectRoot: process.cwd(),
       enforceQuality: !opts.force,
+      allowUnmerged: opts.unmergedOk || false,
     });
     if (!result.success) {
       console.log(`\n❌ ${result.error}\n`);
@@ -796,6 +806,33 @@ program
       createdBy: 'cli-user',
     });
     console.log(`\n✓ Decision logged: ${result.decisionId.slice(0, 8)}\n  "${decision}"\n`);
+  });
+
+// ============================================================================
+// Session Heartbeat — keeps active sessions alive during long work
+// ============================================================================
+
+program
+  .command('heartbeat')
+  .description('Refresh active session heartbeats (used by hooks to prevent session expiry)')
+  .action(async () => {
+    await coordination.initialize();
+    const project = await resolveProject();
+    if (!project) { process.exit(0); return; }
+
+    const tasks = await coordination.getTasks({ projectId: project.id, status: 'in-progress' });
+    if (tasks.length === 0) { process.exit(0); return; }
+
+    // Refresh heartbeat for each in-progress task's active session
+    for (const task of tasks) {
+      if (task.implementation?.sessionId) {
+        try {
+          await storage.updateSessionHeartbeat(task.implementation.sessionId);
+        } catch {
+          // Non-critical — session may have been cleaned up
+        }
+      }
+    }
   });
 
 // ============================================================================

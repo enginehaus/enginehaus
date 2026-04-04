@@ -16,6 +16,7 @@
 
 import './meta-tools.js'; // discover_tools — tool orientation
 import './workflow-tools.js';
+import './workflow-config-tools.js';
 import './product-role-tools.js';
 import './task-tools.js';
 import './coordination-tools.js';

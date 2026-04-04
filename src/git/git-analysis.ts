@@ -485,6 +485,47 @@ export function generateQualityMetrics(analysis: GitAnalysis): {
   };
 }
 
+/**
+ * Check whether the current branch is merged into a target branch (default: main).
+ * "Merged" means all commits on the current branch are reachable from the target.
+ */
+export async function isBranchMergedToMain(repoPath: string, targetBranch?: string): Promise<{
+  currentBranch: string;
+  targetBranch: string;
+  isMainBranch: boolean;
+  isMerged: boolean;
+}> {
+  const target = targetBranch || 'main';
+  const git: SimpleGit = simpleGit({ baseDir: repoPath, binary: 'git' });
+
+  try {
+    const branchResult = await git.branch();
+    const currentBranch = branchResult.current;
+
+    if (!currentBranch) {
+      return { currentBranch: '', targetBranch: target, isMainBranch: false, isMerged: false };
+    }
+
+    // If we're on the target branch, no merge needed
+    if (currentBranch === target) {
+      return { currentBranch, targetBranch: target, isMainBranch: true, isMerged: true };
+    }
+
+    // Check if current branch is in the list of branches merged into target
+    try {
+      const merged = await git.branch(['--merged', target]);
+      const isMerged = merged.all.some(name => name.trim() === currentBranch);
+      return { currentBranch, targetBranch: target, isMainBranch: false, isMerged };
+    } catch {
+      // Target branch may not exist — can't verify merge
+      return { currentBranch, targetBranch: target, isMainBranch: false, isMerged: false };
+    }
+  } catch {
+    // Not a git repo or other error
+    return { currentBranch: '', targetBranch: target, isMainBranch: false, isMerged: false };
+  }
+}
+
 // ============================================================================
 // Branch Lifecycle
 // ============================================================================
@@ -652,6 +693,138 @@ export async function deleteTaskBranch(repoPath: string, taskIdPrefix: string): 
   }
 
   return { deletedLocal, deletedRemote };
+}
+
+// ============================================================================
+// Post-Completion Branch Merge & Cleanup
+// ============================================================================
+
+export interface BranchMergeResult {
+  branch: string;
+  action: 'merged' | 'deleted' | 'skipped';
+  reason?: string;
+  commits?: number;
+}
+
+export interface MergeCleanupResult {
+  branches: BranchMergeResult[];
+  pushed: boolean;
+  pushError?: string;
+}
+
+/**
+ * Merge all feature branches into main (fast-forward only), delete them,
+ * and push main. Used after task completion to keep main up-to-date.
+ *
+ * - Switches to main if not already on it
+ * - Finds ALL local feature/ branches (not just the current task's)
+ * - For each: ff-merge if ahead, delete if merged, skip if diverged
+ * - Pushes main to origin if ahead
+ */
+export async function mergeAndCleanupBranches(repoPath: string): Promise<MergeCleanupResult> {
+  const git = simpleGit(repoPath);
+  const branches: BranchMergeResult[] = [];
+  let pushed = false;
+  let pushError: string | undefined;
+
+  try {
+    const branchSummary = await git.branch(['-a']);
+    const currentBranch = branchSummary.current;
+
+    // Switch to main if not already there
+    if (currentBranch !== 'main') {
+      try {
+        await git.checkout('main');
+      } catch {
+        return { branches: [{ branch: currentBranch, action: 'skipped', reason: 'Cannot switch to main' }], pushed: false };
+      }
+    }
+
+    // Find all local feature/ branches
+    const featureBranches = branchSummary.all
+      .filter(name => !name.startsWith('remotes/') && name.startsWith('feature/'));
+
+    for (const branch of featureBranches) {
+      try {
+        // Count commits ahead of main
+        const log = await git.log({ from: 'main', to: branch });
+        const ahead = log.total;
+
+        if (ahead > 0) {
+          // Has unmerged commits — try fast-forward merge
+          try {
+            await git.merge([branch, '--ff-only']);
+            // Merged successfully — delete the branch
+            try {
+              await git.branch(['-d', branch]);
+            } catch {
+              // Branch delete failed but merge succeeded
+            }
+            branches.push({ branch, action: 'merged', commits: ahead });
+          } catch {
+            // Can't fast-forward — diverged from main
+            branches.push({ branch, action: 'skipped', reason: 'Cannot fast-forward (branch has diverged from main)' });
+          }
+        } else {
+          // No commits ahead — already merged or empty, just delete
+          try {
+            await git.branch(['-d', branch]);
+            branches.push({ branch, action: 'deleted', reason: 'Already merged or empty' });
+          } catch {
+            // Force-delete if -d fails (branch might not be fully merged from git's perspective)
+            try {
+              await git.branch(['-D', branch]);
+              branches.push({ branch, action: 'deleted', reason: 'Already merged or empty' });
+            } catch {
+              branches.push({ branch, action: 'skipped', reason: 'Cannot delete branch' });
+            }
+          }
+        }
+      } catch {
+        branches.push({ branch, action: 'skipped', reason: 'Error analyzing branch' });
+      }
+    }
+
+    // Delete remote tracking branches for merged/deleted branches
+    for (const result of branches) {
+      if (result.action === 'merged' || result.action === 'deleted') {
+        const remoteName = `remotes/origin/${result.branch}`;
+        if (branchSummary.all.includes(remoteName)) {
+          try {
+            await git.raw(['push', 'origin', '--delete', result.branch]);
+          } catch {
+            // Non-critical — remote branch may already be gone
+          }
+        }
+      }
+    }
+
+    // Push main to origin if ahead
+    try {
+      const status = await git.status();
+      if (status.ahead > 0) {
+        await git.push('origin', 'main');
+        pushed = true;
+      } else {
+        // Check if remote exists but we're not tracking
+        try {
+          const log = await git.log({ from: 'origin/main', to: 'main' });
+          if (log.total > 0) {
+            await git.push('origin', 'main');
+            pushed = true;
+          }
+        } catch {
+          // No remote tracking — skip push
+        }
+      }
+    } catch (err) {
+      pushError = err instanceof Error ? err.message : String(err);
+    }
+  } catch {
+    // Not a git repo or other fatal error
+  }
+
+  return { branches, pushed, pushError };
 }
 
 // ============================================================================

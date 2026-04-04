@@ -548,6 +548,7 @@ export function generateDefaultConfigFile(
         autoDetectType: true,
         requireCommitOnCompletion: true,
         requirePushOnCompletion: true,
+        requireMergeOnCompletion: true,
         requireOutcomeTracking: true,
         checkpointProtocol: 'git' as const,
         useWorktree: false,

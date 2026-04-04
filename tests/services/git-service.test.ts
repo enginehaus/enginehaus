@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GitService } from '../../src/git/git-service.js';
+import { isBranchMergedToMain } from '../../src/git/git-analysis.js';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -97,5 +98,51 @@ describe('GitService', () => {
     // Verify working tree is clean after commit
     const status = await git.getStatus();
     expect(status.hasUncommittedChanges).toBe(false);
+  });
+});
+
+describe('isBranchMergedToMain', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'enginehaus-merge-test-'));
+    execSync('git init', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.email "test@test.com"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git config user.name "Test User"', { cwd: tempDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tempDir, 'README.md'), '# Test\n');
+    execSync('git add . && git commit -m "Initial commit"', { cwd: tempDir, stdio: 'ignore' });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it('returns isMainBranch:true when on main', async () => {
+    const result = await isBranchMergedToMain(tempDir);
+    expect(result.isMainBranch).toBe(true);
+    expect(result.isMerged).toBe(true);
+  });
+
+  it('returns isMerged:false for unmerged feature branch', async () => {
+    execSync('git checkout -b feature/test', { cwd: tempDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tempDir, 'new.ts'), 'export const x = 1;\n');
+    execSync('git add new.ts && git commit -m "feat: new"', { cwd: tempDir, stdio: 'ignore' });
+
+    const result = await isBranchMergedToMain(tempDir);
+    expect(result.isMainBranch).toBe(false);
+    expect(result.isMerged).toBe(false);
+    expect(result.currentBranch).toBe('feature/test');
+  });
+
+  it('returns isMerged:true for merged feature branch', async () => {
+    execSync('git checkout -b feature/merged', { cwd: tempDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tempDir, 'merged.ts'), 'export const m = 1;\n');
+    execSync('git add merged.ts && git commit -m "feat: merged"', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git checkout main && git merge feature/merged', { cwd: tempDir, stdio: 'ignore' });
+    execSync('git checkout feature/merged', { cwd: tempDir, stdio: 'ignore' });
+
+    const result = await isBranchMergedToMain(tempDir);
+    expect(result.isMainBranch).toBe(false);
+    expect(result.isMerged).toBe(true);
   });
 });

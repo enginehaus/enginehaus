@@ -899,6 +899,7 @@ export function registerTaskCommands(program: Command, ctx: CliContext): void {
     .option('--since <datetime>', 'ISO datetime to analyze git history from')
     .option('-f, --force', 'Bypass quality enforcement (requires --reason)')
     .option('--reason <reason>', 'Reason for bypassing quality checks (required with --force)')
+    .option('--unmerged-ok', 'Allow completion from an unmerged branch')
     .action(async (taskIdArg, opts) => {
       await coordination.initialize();
 
@@ -935,9 +936,19 @@ export function registerTaskCommands(program: Command, ctx: CliContext): void {
         summary: opts.summary,
         defaultProjectRoot: process.cwd(),
         enforceQuality: !opts.force,
+        allowUnmerged: opts.unmergedOk || false,
       });
 
       if (!result.success) {
+        if (result.unmergedBranch) {
+          const ub = result.unmergedBranch;
+          console.error(`\n❌ Branch "${ub.branch}" has not been merged to ${ub.targetBranch}.\n`);
+          console.error(`   Options:`);
+          console.error(`     - Merge: git checkout ${ub.targetBranch} && git merge ${ub.branch}`);
+          console.error(`     - Complete anyway: enginehaus task complete ${task.id.slice(0, 8)} -s "${opts.summary}" --unmerged-ok`);
+          console.error('');
+          process.exit(1);
+        }
         if (result.uncommittedChanges) {
           console.error(`\n❌ Cannot complete with uncommitted changes:\n`);
           const uc = result.uncommittedChanges;
@@ -980,6 +991,16 @@ export function registerTaskCommands(program: Command, ctx: CliContext): void {
       if (result.generatedDocs) {
         if (result.generatedDocs.architectureDecisions > 0) {
           console.log(`  Architecture Decisions: ${result.generatedDocs.architectureDecisions}`);
+        }
+      }
+      if ((result as any).mergeCleanup) {
+        const mc = (result as any).mergeCleanup;
+        if (mc.merged.length > 0) {
+          console.log(`  Merged into main:`);
+          mc.merged.forEach((b: string) => console.log(`    ✓ ${b}`));
+        }
+        if (mc.pushed) {
+          console.log(`  Pushed main to origin`);
         }
       }
       if (result.workflowWarnings?.length) {

@@ -241,6 +241,165 @@ describe('completeTaskSmart integration', () => {
     expect(result.success).toBe(true);
   });
 
+  it('blocks cross-agent completion via completeTaskSmart', async () => {
+    const task = await service.createTask({ title: 'Code task', priority: 'medium' });
+    await service.claimTask(task.id, 'claude-code');
+
+    // Make a commit so the task has some work
+    fs.writeFileSync(path.join(repoDir, 'cross-agent.ts'), 'export const x = 1;\n');
+    execSync('git add cross-agent.ts && git commit -m "feat: code work"', {
+      cwd: repoDir,
+      stdio: 'ignore',
+    });
+
+    // Desktop tries to complete Code's task
+    const result = await service.completeTaskSmart({
+      taskId: task.id,
+      summary: 'Desktop closing Code task',
+      defaultProjectRoot: repoDir,
+      agentId: 'claude-desktop',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.ownershipConflict).toBeDefined();
+    expect(result.ownershipConflict.claimingAgent).toBe('claude-code');
+    expect(result.ownershipConflict.callingAgent).toBe('claude-desktop');
+  });
+
+  it('blocks cross-agent completion via updateTaskWithResponse', async () => {
+    const task = await service.createTask({ title: 'Code task 2', priority: 'medium' });
+    await service.claimTask(task.id, 'claude-code');
+
+    // Desktop tries to set status=completed via update_task
+    const result = await service.updateTaskWithResponse({
+      taskId: task.id,
+      status: 'completed',
+      lastModifiedBy: 'claude-desktop',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('claimed by');
+    expect(result.error).toContain('claude-code');
+  });
+
+  it('allows same agent to complete its own task via updateTaskWithResponse', async () => {
+    const task = await service.createTask({ title: 'Self complete', priority: 'medium' });
+    await service.claimTask(task.id, 'claude-code');
+
+    const result = await service.updateTaskWithResponse({
+      taskId: task.id,
+      status: 'completed',
+      lastModifiedBy: 'claude-code',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('blocks on unmerged branch', async () => {
+    const task = await service.createTask({ title: 'Unmerged branch task', priority: 'medium' });
+    await service.claimTask(task.id, 'test-agent');
+
+    // Create a feature branch and make a commit there
+    execSync('git checkout -b feature/test-unmerged', { cwd: repoDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repoDir, 'unmerged.ts'), 'export const u = 1;\n');
+    fs.writeFileSync(path.join(repoDir, 'unmerged.test.ts'), 'test("u", () => {});\n');
+    execSync('git add unmerged.ts unmerged.test.ts && git commit -m "feat: unmerged work"', {
+      cwd: repoDir,
+      stdio: 'ignore',
+    });
+    await service.logDecision({
+      decision: 'Test decision',
+      rationale: 'Testing merge check',
+      category: 'architecture',
+      taskId: task.id,
+    });
+
+    const result = await service.completeTaskSmart({
+      taskId: task.id,
+      summary: 'Work on unmerged branch',
+      defaultProjectRoot: repoDir,
+      enforceQuality: true,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('not been merged');
+    expect(result.unmergedBranch).toBeDefined();
+    expect(result.unmergedBranch.branch).toBe('feature/test-unmerged');
+
+    // Clean up — switch back to main
+    execSync('git checkout main', { cwd: repoDir, stdio: 'ignore' });
+  });
+
+  it('allows unmerged branch with allowUnmerged flag', async () => {
+    const task = await service.createTask({ title: 'Allow unmerged task', priority: 'medium' });
+    await service.claimTask(task.id, 'test-agent');
+
+    // Create a feature branch and make a commit
+    execSync('git checkout -b feature/test-allow-unmerged', { cwd: repoDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repoDir, 'allow-unmerged.ts'), 'export const a = 1;\n');
+    fs.writeFileSync(path.join(repoDir, 'allow-unmerged.test.ts'), 'test("a", () => {});\n');
+    execSync('git add allow-unmerged.ts allow-unmerged.test.ts && git commit -m "feat: allow unmerged"', {
+      cwd: repoDir,
+      stdio: 'ignore',
+    });
+    await service.logDecision({
+      decision: 'Test decision',
+      rationale: 'Testing allowUnmerged',
+      category: 'architecture',
+      taskId: task.id,
+    });
+
+    const result = await service.completeTaskSmart({
+      taskId: task.id,
+      summary: 'Allowed unmerged',
+      defaultProjectRoot: repoDir,
+      enforceQuality: true,
+      allowUnmerged: true,
+    });
+
+    expect(result.success).toBe(true);
+
+    // Clean up
+    execSync('git checkout main', { cwd: repoDir, stdio: 'ignore' });
+  });
+
+  it('completes from merged branch', async () => {
+    const task = await service.createTask({ title: 'Merged branch task', priority: 'medium' });
+    await service.claimTask(task.id, 'test-agent');
+
+    // Create a feature branch, commit, then merge to main, switch back
+    execSync('git checkout -b feature/test-merged', { cwd: repoDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(repoDir, 'merged.ts'), 'export const m = 1;\n');
+    fs.writeFileSync(path.join(repoDir, 'merged.test.ts'), 'test("m", () => {});\n');
+    execSync('git add merged.ts merged.test.ts && git commit -m "feat: will be merged"', {
+      cwd: repoDir,
+      stdio: 'ignore',
+    });
+    // Merge into main
+    execSync('git checkout main && git merge feature/test-merged', { cwd: repoDir, stdio: 'ignore' });
+    // Switch back to feature branch (now merged)
+    execSync('git checkout feature/test-merged', { cwd: repoDir, stdio: 'ignore' });
+
+    await service.logDecision({
+      decision: 'Test decision',
+      rationale: 'Testing merged check',
+      category: 'architecture',
+      taskId: task.id,
+    });
+
+    const result = await service.completeTaskSmart({
+      taskId: task.id,
+      summary: 'Branch is merged',
+      defaultProjectRoot: repoDir,
+      enforceQuality: true,
+    });
+
+    expect(result.success).toBe(true);
+
+    // Clean up
+    execSync('git checkout main', { cwd: repoDir, stdio: 'ignore' });
+  });
+
   it('includes surveyDue after 5 completions', async () => {
     // Complete 5 tasks to trigger survey
     for (let i = 0; i < 5; i++) {

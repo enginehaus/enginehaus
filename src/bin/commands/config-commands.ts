@@ -6,6 +6,7 @@
 import { Command } from 'commander';
 import { CliContext } from '../cli-context.js';
 import { DEFAULT_CONFIG } from '../../config/types.js';
+import type { BranchStrategy, SessionOwnership, CommitTarget, ReleaseFrequency } from '../../config/types.js';
 import { expandPath } from '../../utils/paths.js';
 import { QualityService } from '../../quality/quality-service.js';
 
@@ -451,5 +452,149 @@ export function registerConfigCommands(program: Command, ctx: CliContext): void 
           }
         }
       }
+    });
+
+  // ========================================================================
+  // Top-level `workflow` command for viewing and configuring workflow
+  // ========================================================================
+
+  const workflowCmd = program
+    .command('workflow')
+    .description('View and configure your team workflow');
+
+  workflowCmd
+    .command('show')
+    .description('Show current workflow configuration')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      await coordination.initialize();
+      const project = await resolveProject();
+      if (!project) {
+        console.error('No active project.');
+        process.exit(1);
+      }
+
+      const configManager = coordination.getConfigManager();
+      const config = await configManager.getEffectiveConfig(project.id);
+      const w = config.workflow;
+
+      const result = {
+        branchStrategy: w.branchStrategy ?? 'feature',
+        sessionOwnership: w.sessionOwnership ?? 'individual',
+        commitTarget: w.commitTarget ?? 'branch',
+        releaseFrequency: w.releaseFrequency ?? undefined,
+        driverRotation: w.driverRotation ?? false,
+        qualityGates: w.qualityGates ?? '(default heuristics)',
+      };
+
+      if (opts.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        console.log('\nWorkflow Configuration:\n');
+        console.log(`  Branch strategy:    ${result.branchStrategy}`);
+        console.log(`  Session ownership:  ${result.sessionOwnership}`);
+        console.log(`  Commit target:      ${result.commitTarget}`);
+        console.log(`  Release frequency:  ${result.releaseFrequency ?? '(not set)'}`);
+        console.log(`  Driver rotation:    ${result.driverRotation}`);
+        if (Array.isArray(result.qualityGates)) {
+          console.log(`  Quality gates:      ${(result.qualityGates as string[]).join(', ')}`);
+        } else {
+          console.log(`  Quality gates:      ${result.qualityGates}`);
+        }
+        console.log('');
+      }
+    });
+
+  workflowCmd
+    .command('set')
+    .description('Configure workflow settings')
+    .option('--branch-strategy <strategy>', 'Branch strategy: feature, trunk, gitflow')
+    .option('--session-ownership <mode>', 'Session ownership: individual, collective')
+    .option('--commit-target <target>', 'Commit target: branch, main')
+    .option('--release-frequency <freq>', 'Release frequency: continuous, sprint, manual')
+    .option('--driver-rotation', 'Enable driver rotation')
+    .option('--no-driver-rotation', 'Disable driver rotation')
+    .option('--quality-gates <gates>', 'Comma-separated quality gates (e.g., tests_passing,min_decisions:1)')
+    .action(async (opts) => {
+      await coordination.initialize();
+      const project = await resolveProject();
+      if (!project) {
+        console.error('No active project.');
+        process.exit(1);
+      }
+
+      const configManager = coordination.getConfigManager();
+      const config = await configManager.getEffectiveConfig(project.id);
+      const w = config.workflow;
+      const changes: string[] = [];
+
+      if (opts.branchStrategy) {
+        const val = opts.branchStrategy as BranchStrategy;
+        if (!['feature', 'trunk', 'gitflow'].includes(val)) {
+          console.error(`Invalid branch strategy: ${val}. Use: feature, trunk, gitflow`);
+          process.exit(1);
+        }
+        await configManager.setConfigValue(project.id, 'workflow.branchStrategy', val, { reason: 'CLI workflow set' });
+        changes.push(`branchStrategy: ${w.branchStrategy ?? 'feature'} → ${val}`);
+
+        if (val === 'trunk') {
+          await configManager.setConfigValue(project.id, 'workflow.commitTarget', 'main', { reason: 'Auto-derived from trunk strategy' });
+          await configManager.setConfigValue(project.id, 'git.autoCreateBranches', false, { reason: 'Auto-derived from trunk strategy' });
+          changes.push(`commitTarget: ${w.commitTarget ?? 'branch'} → main`);
+          changes.push(`git.autoCreateBranches: true → false`);
+        }
+      }
+
+      if (opts.sessionOwnership) {
+        const val = opts.sessionOwnership as SessionOwnership;
+        if (!['individual', 'collective'].includes(val)) {
+          console.error(`Invalid session ownership: ${val}. Use: individual, collective`);
+          process.exit(1);
+        }
+        await configManager.setConfigValue(project.id, 'workflow.sessionOwnership', val, { reason: 'CLI workflow set' });
+        changes.push(`sessionOwnership: ${w.sessionOwnership ?? 'individual'} → ${val}`);
+      }
+
+      if (opts.commitTarget) {
+        const val = opts.commitTarget as CommitTarget;
+        if (!['branch', 'main'].includes(val)) {
+          console.error(`Invalid commit target: ${val}. Use: branch, main`);
+          process.exit(1);
+        }
+        await configManager.setConfigValue(project.id, 'workflow.commitTarget', val, { reason: 'CLI workflow set' });
+        changes.push(`commitTarget: ${w.commitTarget ?? 'branch'} → ${val}`);
+      }
+
+      if (opts.releaseFrequency) {
+        const val = opts.releaseFrequency as ReleaseFrequency;
+        if (!['continuous', 'sprint', 'manual'].includes(val)) {
+          console.error(`Invalid release frequency: ${val}. Use: continuous, sprint, manual`);
+          process.exit(1);
+        }
+        await configManager.setConfigValue(project.id, 'workflow.releaseFrequency', val, { reason: 'CLI workflow set' });
+        changes.push(`releaseFrequency: ${w.releaseFrequency ?? '(not set)'} → ${val}`);
+      }
+
+      if (opts.driverRotation !== undefined) {
+        await configManager.setConfigValue(project.id, 'workflow.driverRotation', opts.driverRotation, { reason: 'CLI workflow set' });
+        changes.push(`driverRotation: ${w.driverRotation ?? false} → ${opts.driverRotation}`);
+      }
+
+      if (opts.qualityGates) {
+        const gates = (opts.qualityGates as string).split(',').map((g: string) => g.trim()).filter(Boolean);
+        await configManager.setConfigValue(project.id, 'workflow.qualityGates', gates, { reason: 'CLI workflow set' });
+        changes.push(`qualityGates: ${JSON.stringify(w.qualityGates ?? '(default)')} → ${JSON.stringify(gates)}`);
+      }
+
+      if (changes.length === 0) {
+        console.log('\n  No changes specified. Use --help to see options.\n');
+        return;
+      }
+
+      console.log('\n  Workflow updated:\n');
+      for (const change of changes) {
+        console.log(`    ✓ ${change}`);
+      }
+      console.log('');
     });
 }
